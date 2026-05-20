@@ -347,6 +347,6 @@ void requisito13() {
 
 https://wokwi.com/projects/464493906224299009
 
- * *Vídeo Explicativo do Youtube/Loom:
+ * *Vídeo Explicativo do Youtube:
 
 https://youtu.be/QlRcLPogc_Y?si=f9WGAQrT55i0F0sy
