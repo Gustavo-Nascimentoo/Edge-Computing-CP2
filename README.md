@@ -1,306 +1,351 @@
-# 🍷 Vinheria Agnello — Sistema de Monitoramento Ambiental
+# # Vinheria Agnello - Sistema de Monitoramento Ambiental 🍷
+Este projeto consiste em um sistema automatizado de monitoramento de *luminosidade, temperatura e umidade* desenvolvido para a *Vinheria Agnello*. O objetivo principal é garantir a integridade e a máxima qualidade dos vinhos armazenados em estoque, protegendo-os de fatores climáticos que possam degradar suas propriedades organolépticas.
+## 📋 Contextualização e Importância do Problema
+O vinho é um produto extremamente complexo e sensível, considerado por muitos uma bebida "viva". Pequenas flutuações nas condições do ambiente podem alterar permanentemente seu sabor, aroma e longevidade. O sistema monitora três inimigos silenciosos do vinho:
+ 1. *Luminosidade:* A exposição à luz forte (especialmente raios UV) inicia reações químicas que alteram os compostos orgânicos da bebida, estragando seu sabor. O ideal é manter o ambiente em penumbra constante.
+ 2. *Temperatura:* O calor excessivo acelera o envelhecimento precoce do vinho. Além disso, oscilações térmicas de mais de 3^\circ\text{C} causam o aparecimento de aromas indesejados. A temperatura ideal de conservação gira em torno de *13^\circ\text{C}*.
+ 3. *Umidade:* O ar muito seco (umidade baixa) resseca as rolhas de cortiça, permitindo a entrada de oxigênio que oxida o vinho. Por outro lado, o excesso de umidade destrói os rótulos e estimula a proliferação de fungos e mofo. O nível ideal deve ser mantido próximo a *70%* (com variação aceitável entre 60% e 80%).
+## 🛠️ Desafios Superados na Solução
+Durante o desenvolvimento do protótipo no simulador *Wokwi*, o grupo enfrentou e superou desafios cruciais de engenharia:
+ * *Complexidade da Montagem:* Integrar múltiplos componentes físicos (atuadores sonoros, barras de LEDs e telas) para responder a 3 variáveis simultâneas exigiu um planejamento rigoroso no mapeamento e organização da fiação virtual.
+ * *Interface Clara com 3 Displays:* Para que o usuário do depósito compreendesse os dados sem confusão, estruturamos uma lógica visual clara para o isolamento de cada métrica (temperatura, umidade e luz), evitando a poluição de dados em uma única tela.
+ * *Estabilidade dos Dados:* Implementamos uma rotina de software para calcular a *média de 5 leituras consecutivas* antes de atualizar os valores a cada 5 segundos. Isso elimina picos falsos e leituras erráticas causadas por ruídos nos sensores.
 
-## 📖 Sobre o Projeto
+## 💻 Código-Fonte do Projeto
 
-O **Vinheria Agnello** é um sistema embarcado desenvolvido em **Arduino** com o objetivo de monitorar variáveis ambientais críticas para a conservação adequada de vinhos em estoque.
+O código abaixo foi implementado em ambiente Arduino para gerenciar:
 
-A solução realiza o acompanhamento em tempo real de:
+- leitura dos sensores DHT11 e LDR
+- cálculo de médias aritméticas
+- controle de LEDs e buzzer
+- exibição de dados no LCD
+- monitoramento modular por requisitos
 
-- 🌡️ Temperatura
-- 💧 Umidade
-- 💡 Luminosidade
+```cpp
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <DHT.h>
 
-O sistema foi projetado para auxiliar no controle das condições ideais de armazenamento, prevenindo perdas de qualidade causadas por alterações ambientais que afetam diretamente as propriedades físico-químicas e sensoriais dos vinhos.
+// ====================
+// DEFINIÇÕES DE PINOS
+// ====================
 
-O projeto foi desenvolvido utilizando o simulador **Wokwi**, integrando sensores, atuadores e displays para representar um cenário real de monitoramento automatizado em adegas e depósitos especializados.
+#define DHTPIN 6
+#define DHTTYPE DHT11
 
----
+#define LDR A0
 
-## 🎯 Objetivo da Solução
+#define LED_VERDE 2
+#define LED_AMARELO 3
+#define LED_VERMELHO 4
 
-Garantir que o ambiente de armazenamento permaneça dentro dos padrões ideais para conservação de vinhos, emitindo alertas visuais e sonoros sempre que houver condições inadequadas.
+#define BUZZER 5
 
----
+// ====================
+// OBJETOS
+// ====================
 
-## 🍇 Importância do Controle Ambiental
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+DHT dht(DHTPIN, DHTTYPE);
 
-O vinho é um produto altamente sensível às condições do ambiente. Pequenas variações podem comprometer seu envelhecimento, aroma, sabor e integridade.
+// ====================
+// VARIÁVEIS GLOBAIS
+// ====================
 
-### 💡 Luminosidade
+float temperatura;
+float umidade;
+int luminosidade;
 
-A exposição excessiva à luz, principalmente raios UV, provoca reações químicas que degradam compostos orgânicos do vinho.
+// ====================
+// SETUP
+// ====================
 
-#### Condição ideal
+void setup() {
 
-- Ambiente escuro ou com baixa incidência de luz.
+  pinMode(LED_VERDE, OUTPUT);
+  pinMode(LED_AMARELO, OUTPUT);
+  pinMode(LED_VERMELHO, OUTPUT);
+  pinMode(BUZZER, OUTPUT);
 
----
+  lcd.init();
+  lcd.backlight();
 
-### 🌡️ Temperatura
+  dht.begin();
 
-Temperaturas elevadas aceleram o envelhecimento do vinho e prejudicam sua estabilidade.
+  Serial.begin(9600);
+}
 
-#### Faixa ideal
+// ====================
+// LOOP PRINCIPAL
+// ====================
 
-- Entre **10°C e 15°C**
-- Ideal aproximado: **13°C**
+void loop() {
 
-Oscilações superiores a **3°C** podem gerar alterações indesejadas no aroma e sabor.
+  lerSensores();
 
----
+  // CHAME APENAS OS REQUISITOS NECESSÁRIOS
 
-### 💧 Umidade
+  // requisito1();
+  // requisito2();
+  // requisito3();
+  // ...
 
-A umidade influencia diretamente a conservação das rolhas de cortiça.
+  delay(1000);
+}
 
-#### Problemas causados
+// ====================
+// LEITURA DOS SENSORES
+// ====================
 
-- **Baixa umidade:** ressecamento das rolhas e oxidação do vinho.
-- **Alta umidade:** proliferação de fungos e deterioração dos rótulos.
+void lerSensores() {
 
-#### Faixa ideal
+  float somaTemp = 0;
+  float somaUmid = 0;
+  int somaLuz = 0;
 
-- Entre **60% e 80%**
-- Ideal aproximado: **70%**
+  for (int i = 0; i < 5; i++) {
 
----
+    somaTemp += dht.readTemperature();
+    somaUmid += dht.readHumidity();
+    somaLuz += analogRead(LDR);
 
-## 🧠 Funcionalidades do Sistema
+    delay(100);
+  }
 
-✅ Leitura contínua dos sensores ambientais  
-✅ Cálculo de média de leituras para maior estabilidade  
-✅ Alertas visuais com LEDs  
-✅ Alertas sonoros com buzzer  
-✅ Exibição de dados em display LCD I2C  
-✅ Diagnóstico via monitor serial  
-✅ Estrutura modular baseada em requisitos independentes
+  temperatura = somaTemp / 5;
+  umidade = somaUmid / 5;
+  luminosidade = somaLuz / 5;
+}
 
----
+// ====================
+// FUNÇÕES AUXILIARES
+// ====================
 
-## 🛠️ Tecnologias Utilizadas
+void desligarTudo() {
 
-- Arduino UNO
-- Wokwi Simulator
-- Linguagem C/C++
-- Sensor DHT11
-- Sensor LDR
-- Display LCD I2C 16x2
-- LEDs
-- Buzzer
+  digitalWrite(LED_VERDE, LOW);
+  digitalWrite(LED_AMARELO, LOW);
+  digitalWrite(LED_VERMELHO, LOW);
 
----
+  digitalWrite(BUZZER, LOW);
+}
 
-## 🔌 Componentes do Circuito
+void limparLCD() {
 
-| Componente | Função |
-|---|---|
-| DHT11 | Leitura de temperatura e umidade |
-| LDR | Leitura de luminosidade |
-| LCD I2C 16x2 | Exibição das informações |
-| LEDs | Indicação visual de status |
-| Buzzer | Alerta sonoro |
-| Arduino UNO | Controle principal do sistema |
+  lcd.clear();
+  lcd.setCursor(0, 0);
+}
 
----
+void mostrarValor(String texto, float valor, String unidade) {
 
-## ⚙️ Dependências
+  lcd.clear();
 
-Para compilar o projeto no Arduino IDE, instale as seguintes bibliotecas:
+  lcd.setCursor(0, 0);
+  lcd.print(texto);
 
-### Bibliotecas necessárias
+  lcd.setCursor(0, 1);
+  lcd.print(valor);
+  lcd.print(unidade);
+}
 
-- `DHT sensor library by Adafruit`
-- `LiquidCrystal_I2C`
-- `Wire`
+// ====================
+// REQUISITOS DE LUMINOSIDADE
+// ====================
 
----
+void requisito1() {
 
-## 📥 Como Instalar as Dependências
+  if (luminosidade < 400) {
+    digitalWrite(LED_VERDE, HIGH);
+  }
+}
 
-### Arduino IDE
+void requisito2() {
 
-1. Abra a **Arduino IDE**
-2. Vá em:
+  if (luminosidade >= 400 && luminosidade < 700) {
+    digitalWrite(LED_AMARELO, HIGH);
+  }
+}
 
-```bash
-Sketch → Include Library → Manage Libraries
+void requisito3() {
+
+  if (luminosidade >= 700) {
+    digitalWrite(LED_VERMELHO, HIGH);
+  }
+}
+
+void requisito4() {
+
+  limparLCD();
+
+  if (luminosidade < 400) {
+    lcd.print("Escuro");
+  }
+  else if (luminosidade < 700) {
+    lcd.print("Meia Luz");
+  }
+  else {
+    lcd.print("Muito Claro");
+  }
+}
+
+// ====================
+// REQUISITOS DE TEMPERATURA
+// ====================
+
+void requisito5() {
+
+  if (temperatura >= 10 && temperatura <= 15) {
+
+    digitalWrite(LED_VERDE, HIGH);
+
+    lcd.clear();
+
+    lcd.setCursor(0, 0);
+    lcd.print("Temp Ideal");
+
+    lcd.setCursor(0, 1);
+    lcd.print(temperatura);
+    lcd.print((char)223);
+    lcd.print("C");
+  }
+}
+
+void requisito6() {
+
+  if (temperatura > 15) {
+
+    digitalWrite(LED_AMARELO, HIGH);
+
+    tone(BUZZER, 1000);
+
+    lcd.clear();
+
+    lcd.setCursor(0, 0);
+    lcd.print("Temp Alta");
+
+    lcd.setCursor(0, 1);
+    lcd.print(temperatura);
+    lcd.print((char)223);
+    lcd.print("C");
+  }
+}
+
+void requisito7() {
+
+  if (temperatura < 10) {
+
+    digitalWrite(LED_AMARELO, HIGH);
+
+    tone(BUZZER, 1000);
+
+    lcd.clear();
+
+    lcd.setCursor(0, 0);
+    lcd.print("Temp Baixa");
+
+    lcd.setCursor(0, 1);
+    lcd.print(temperatura);
+    lcd.print((char)223);
+    lcd.print("C");
+  }
+}
+
+// ====================
+// REQUISITOS DE UMIDADE
+// ====================
+
+void requisito8() {
+
+  if (umidade >= 50 && umidade <= 70) {
+
+    digitalWrite(LED_VERDE, HIGH);
+
+    lcd.clear();
+
+    lcd.setCursor(0, 0);
+    lcd.print("Umidade OK");
+
+    lcd.setCursor(0, 1);
+    lcd.print(umidade);
+    lcd.print("%");
+  }
+}
+
+void requisito9() {
+
+  if (umidade > 70) {
+
+    digitalWrite(LED_VERMELHO, HIGH);
+
+    tone(BUZZER, 1000);
+
+    lcd.clear();
+
+    lcd.setCursor(0, 0);
+    lcd.print("Umidade Alta");
+
+    lcd.setCursor(0, 1);
+    lcd.print(umidade);
+    lcd.print("%");
+  }
+}
+
+void requisito10() {
+
+  if (umidade < 50) {
+
+    digitalWrite(LED_VERMELHO, HIGH);
+
+    tone(BUZZER, 1000);
+
+    lcd.clear();
+
+    lcd.setCursor(0, 0);
+    lcd.print("Umidade Baixa");
+
+    lcd.setCursor(0, 1);
+    lcd.print(umidade);
+    lcd.print("%");
+  }
+}
+
+// ====================
+// EXIBIÇÃO E DIAGNÓSTICO
+// ====================
+
+void requisito11() {
+
+  mostrarValor("Temperatura", temperatura, "C");
+}
+
+void requisito12() {
+
+  mostrarValor("Umidade", umidade, "%");
+}
+
+void requisito13() {
+
+  Serial.print("Temp: ");
+  Serial.print(temperatura);
+
+  Serial.print(" | Umidade: ");
+  Serial.print(umidade);
+
+  Serial.print(" | Luz: ");
+  Serial.println(luminosidade);
+}
 ```
 
-3. Pesquise e instale:
-
-- `DHT sensor library by Adafruit`
-- `LiquidCrystal I2C`
-
----
-
-## ▶️ Como Executar o Projeto
-
-### Método 1 — Simulação no Wokwi
-
-1. Acesse o simulador:
-
-👉 https://wokwi.com/projects/464493906224299009
-
-2. Clique em **Start Simulation**
-3. Interaja com os sensores virtuais
-4. Observe:
-   - LEDs
-   - LCD
-   - Buzzer
-   - Monitor serial
-
----
-
-### Método 2 — Arduino IDE
-
-#### 1. Clone ou copie o projeto
-
-```bash
-git clone <url-do-repositorio>
-```
-
-Ou copie manualmente o código `.ino`.
-
----
-
-#### 2. Abra o arquivo na Arduino IDE
-
-```bash
-vinheria-agnello.ino
-```
-
----
-
-#### 3. Instale as bibliotecas necessárias
-
-Conforme explicado anteriormente.
-
----
-
-#### 4. Conecte o Arduino
-
-Selecione:
-
-```bash
-Tools → Board → Arduino UNO
-```
-
-E escolha a porta correta.
-
----
-
-#### 5. Faça o upload
-
-Clique em:
-
-```bash
-Upload
-```
-
----
-
-## 🧩 Estrutura do Sistema
-
-O projeto foi desenvolvido de forma modular, onde cada requisito representa uma funcionalidade específica.
-
-### Requisitos implementados
-
-| Requisito | Descrição |
-|---|---|
-| 1–4 | Monitoramento de luminosidade |
-| 5–7 | Controle de temperatura |
-| 8–10 | Controle de umidade |
-| 11–12 | Exibição de dados no LCD |
-| 13 | Diagnóstico via Serial Monitor |
-
----
-
-## 📊 Estratégia de Estabilização dos Dados
-
-Para evitar leituras incorretas e oscilações bruscas dos sensores, o sistema realiza:
-
-- 5 leituras consecutivas
-- cálculo da média aritmética
-- atualização periódica dos dados
-
-Essa abordagem reduz ruídos e melhora a confiabilidade do monitoramento.
-
----
-
-## 🚨 Sistema de Alertas
-
-### LEDs
-
-| Cor | Significado |
-|---|---|
-| 🟢 Verde | Condição ideal |
-| 🟡 Amarelo | Atenção |
-| 🔴 Vermelho | Condição crítica |
-
----
-
-### Buzzer
-
-O buzzer é acionado em situações críticas de:
-
-- temperatura inadequada
-- umidade fora da faixa aceitável
-
----
-
-## 🧪 Desafios Enfrentados
-
-Durante o desenvolvimento, alguns desafios importantes foram superados:
-
-- Integração simultânea de múltiplos sensores e atuadores
-- Organização da lógica modular dos requisitos
-- Gerenciamento de displays e feedback visual
-- Redução de ruídos nas leituras
-- Estruturação do circuito virtual no Wokwi
-
----
-
-## 📸 Demonstração
-
-### 🎥 Vídeo Explicativo
-
-👉 https://youtu.be/QlRcLPogc_Y?si=f9WGAQrT55i0F0sy
-
----
-
-## 📂 Estrutura Sugerida do Projeto
-
-```bash
-📦 vinheria-agnello
- ┣ 📜 README.md
- ┣ 📜 vinheria-agnello.ino
- ┗ 📂 assets
-```
-
----
-
-## 👨‍💻 Integrantes do Grupo
-
-| Nome | RM |
-|---|---|
-| Gustavo Almeida Lopes do Nascimento | RM 571070 |
-| João Gabriel Mosqueti Agra Cunha | RM 572017 |
-| Leonardo Teodoro Leitão | RM 569724 |
-| Rafael Yuta Nischida | RM 570552 |
-
----
-
-## 📌 Melhorias Futuras
-
-- Integração com IoT
-- Dashboard web em tempo real
-- Armazenamento em banco de dados
-- Alertas por aplicativo/mobile
-- Histórico de medições
-- Controle automático de climatização
-
----
-
-## 📄 Licença
-
-Projeto desenvolvido para fins acadêmicos e educacionais.
+## 👥 Integrantes do Grupo
+ * *Gustavo Almeida Lopes do Nascimento* — RM 571070
+ * *João Gabriel Mosqueti Agra Cunha* — RM 572017
+ * *Leonardo Teodoro Leitão* — RM 569724
+ * *Rafael Yuta Nischida* — RM 570552
+### 🌐 Links do Projeto
+ * *Simulador do Circuito (Wokwi): 
+
+https://wokwi.com/projects/464493906224299009
+
+ * *Vídeo Explicativo do Youtube/Loom:
+
+https://youtu.be/QlRcLPogc_Y?si=f9WGAQrT55i0F0sy
