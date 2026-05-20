@@ -1,4 +1,10 @@
-# # Vinheria Agnello - Sistema de Monitoramento Ambiental 🍷
+## 👥 Integrantes do Grupo
+ * *Gustavo Almeida Lopes do Nascimento* — RM 571070
+ * *João Gabriel Mosqueti Agra Cunha* — RM 572017
+ * *Leonardo Teodoro Leitão* — RM 569724
+ * *Rafael Yuta Nischida* — RM 570552
+ 
+ # # Vinheria Agnello - Sistema de Monitoramento Ambiental 🍷
 Este projeto consiste em um sistema automatizado de monitoramento de *luminosidade, temperatura e umidade* desenvolvido para a *Vinheria Agnello*. O objetivo principal é garantir a integridade e a máxima qualidade dos vinhos armazenados em estoque, protegendo-os de fatores climáticos que possam degradar suas propriedades organolépticas.
 ## 📋 Contextualização e Importância do Problema
 O vinho é um produto extremamente complexo e sensível, considerado por muitos uma bebida "viva". Pequenas flutuações nas condições do ambiente podem alterar permanentemente seu sabor, aroma e longevidade. O sistema monitora três inimigos silenciosos do vinho:
@@ -336,11 +342,6 @@ void requisito13() {
 }
 ```
 
-## 👥 Integrantes do Grupo
- * *Gustavo Almeida Lopes do Nascimento* — RM 571070
- * *João Gabriel Mosqueti Agra Cunha* — RM 572017
- * *Leonardo Teodoro Leitão* — RM 569724
- * *Rafael Yuta Nischida* — RM 570552
 ### 🌐 Links do Projeto
  * *Simulador do Circuito (Wokwi): 
 
